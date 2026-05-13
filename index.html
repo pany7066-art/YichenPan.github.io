@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yichen Pan — 3D Generative AI & Creative Technology</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #18181f;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8e8f0;
+    --muted: #7a7a96;
+    --faint: #3a3a50;
+    --accent: #c8b8ff;
+    --accent2: #7cf0c8;
+    --accent3: #ffb86c;
+    --serif: 'DM Serif Display', Georgia, serif;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* ── GLOW BLOBS ── */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob-1 { width: 500px; height: 500px; background: #8b5cf6; top: -100px; left: -100px; }
+  .blob-2 { width: 400px; height: 400px; background: #06b6d4; bottom: 200px; right: -80px; }
+  .blob-3 { width: 300px; height: 300px; background: #f59e0b; top: 60%; left: 40%; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.1rem 3rem;
+    background: rgba(10,10,15,0.75);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: var(--serif);
+    font-size: 17px;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+
+  .nav-links a {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.06em;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--accent); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8rem 3rem 5rem;
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--accent2);
+    letter-spacing: 0.12em;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.1s forwards;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 32px;
+    height: 1px;
+    background: var(--accent2);
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: 1.05;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.25s forwards;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-family: var(--serif);
+    font-size: clamp(20px, 3vw, 32px);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--muted);
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.4s forwards;
+  }
+
+  .hero-desc {
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 520px;
+    line-height: 1.8;
+    margin-bottom: 2.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.55s forwards;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.7s forwards;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-accent {
+    background: var(--accent);
+    color: #0a0a0f;
+    font-weight: 500;
+  }
+  .btn-accent:hover { background: #d4c5ff; transform: translateY(-1px); }
+
+  .keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.85s forwards;
+  }
+
+  .kw {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 300;
+    padding: 4px 12px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    color: var(--faint);
+    color: #5a5a78;
+    letter-spacing: 0.04em;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .kw:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── SECTIONS ── */
+  section {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 5rem 3rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+
+  .section-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+
+  .section-title {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  /* ── ABOUT ── */
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .about-text {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.85;
+  }
+
+  .about-text p + p { margin-top: 1rem; }
+
+  .about-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .meta-row {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    background: var(--bg2);
+    transition: background 0.2s;
+  }
+  .meta-row:first-child { border-radius: 6px 6px 0 0; }
+  .meta-row:last-child { border-bottom: 1px solid var(--border); border-radius: 0 0 6px 6px; }
+  .meta-row:hover { background: var(--bg3); }
+
+  .meta-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 300;
+    color: var(--faint);
+    letter-spacing: 0.1em;
+    margin-bottom: 3px;
+  }
+  .meta-value { font-size: 13px; color: var(--text); }
+
+  /* ── RESEARCH ── */
+  .research-list { display: flex; flex-direction: column; gap: 0; }
+
+  .research-item {
+    padding: 2rem 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1.5rem;
+    align-items: start;
+    transition: background 0.15s;
+  }
+  .research-item:first-child { border-top: 1px solid var(--border); }
+
+  .research-title {
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+    line-height: 1.35;
+  }
+
+  .research-venue {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 2px;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    align-self: flex-start;
+    margin-top: 4px;
+  }
+  .venue-purple { background: rgba(200,184,255,0.12); color: var(--accent); border: 1px solid rgba(200,184,255,0.2); }
+  .venue-teal   { background: rgba(124,240,200,0.1);  color: var(--accent2); border: 1px solid rgba(124,240,200,0.2); }
+  .venue-gray   { background: var(--bg3); color: var(--muted); border: 1px solid var(--border2); }
+
+  .research-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.75;
+    max-width: 600px;
+  }
+
+  .research-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 0.75rem; }
+
+  .rtag {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 300;
+    padding: 2px 8px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    color: var(--faint);
+    color: #5a5a78;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── PROJECTS ── */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .project-card {
+    background: var(--bg2);
+    padding: 2rem;
+    transition: background 0.2s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .project-card:hover { background: var(--bg3); }
+
+  .project-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--accent3);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.75rem;
+  }
+
+  .project-title {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-style: italic;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .project-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 1.25rem;
+  }
+
+  .project-link {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--accent3);
+    letter-spacing: 0.06em;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  /* ── SKILLS ── */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .skill-block {
+    background: var(--bg2);
+    padding: 1.5rem;
+    transition: background 0.2s;
+  }
+  .skill-block:hover { background: var(--bg3); }
+
+  .skill-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+
+  .skill-items {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  /* ── EDUCATION ── */
+  .edu-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .edu-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg2);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .edu-card:hover { border-color: var(--border2); background: var(--bg3); }
+
+  .edu-school {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-style: italic;
+    margin-bottom: 4px;
+  }
+  .edu-detail { font-size: 13px; color: var(--muted); }
+
+  .edu-year {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ── CONTACT ── */
+  .contact-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .contact-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 2rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg2);
+    text-decoration: none;
+    color: var(--muted);
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+    text-align: center;
+  }
+  .contact-card:hover { border-color: var(--accent); background: var(--bg3); color: var(--accent); }
+
+  .contact-icon {
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .contact-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.06em;
+  }
+
+  .contact-value {
+    font-size: 12px;
+    color: var(--faint);
+    word-break: break-all;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 3rem;
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-name {
+    font-family: var(--serif);
+    font-size: 14px;
+    font-style: italic;
+    color: var(--muted);
+  }
+
+  .footer-note {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--faint);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    nav { padding: 1rem 1.5rem; }
+    .nav-links { gap: 1.25rem; }
+    .hero, section { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .hero h1 { font-size: 42px; }
+    .about-grid, .projects-grid, .skills-grid, .contact-grid { grid-template-columns: 1fr; }
+    .research-item { grid-template-columns: 1fr; }
+    footer { flex-direction: column; gap: 0.5rem; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<nav>
+  <span class="nav-logo">Yichen Pan</span>
+  <ul class="nav-links">
+    <li><a href="#about">about</a></li>
+    <li><a href="#research">research</a></li>
+    <li><a href="#projects">projects</a></li>
+    <li><a href="#skills">skills</a></li>
+    <li><a href="#contact">contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Shanghai University × SKKU · Exchange Student · Seoul</div>
+  <h1>Yichen<br><em>Pan</em></h1>
+  <div class="hero-sub">3D Generative AI & Creative Technology</div>
+  <p class="hero-desc">
+    Bridging cutting-edge generative research with production-quality 3D content creation — spanning diffusion models, Gaussian avatar reconstruction, and cross-modal generation.
+  </p>
+  <div class="hero-actions">
+    <a class="btn btn-accent" href="mailto:pany7066@gmail.com">pany7066@gmail.com</a>
+    <a class="btn btn-ghost" href="https://github.com/sakanamango" target="_blank">github / sakanamango</a>
+    <a class="btn btn-ghost" href="https://arxiv.org/abs/2511.19189" target="_blank">arXiv preprint</a>
+  </div>
+  <div class="keywords">
+    <span class="kw">3D Generative AI</span>
+    <span class="kw">Diffusion Models</span>
+    <span class="kw">Autoregressive Models</span>
+    <span class="kw">Texture & Material Synthesis</span>
+    <span class="kw">Computer Vision</span>
+    <span class="kw">Human Motion Generation</span>
+    <span class="kw">3D Gaussian Splatting</span>
+    <span class="kw">Cross-modal Generation</span>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="section-header reveal">
+    <span class="section-num">01</span>
+    <h2 class="section-title">About</h2>
+  </div>
+  <div class="about-grid reveal">
+    <div class="about-text">
+      <p>I am a third-year undergraduate majoring in Digital Media Technology at Shanghai University, currently on exchange at Sungkyunkwan University (SKKU), South Korea.</p>
+      <p>My research interests lie in 3D generative AI and cross-modal generation, with a strong belief in the scaling law as a guiding principle for advancing model capabilities.</p>
+      <p>Under the supervision of Prof. Mentian Li, I have hands-on experience spanning diffusion-based generative models, 3D Gaussian avatar reconstruction, and multimodal dataset construction.</p>
+      <p>I aim to bridge cutting-edge generative research with production-quality 3D content creation — making complex generative systems both technically rigorous and practically useful.</p>
+    </div>
+    <div class="about-meta">
+      <div class="meta-row">
+        <span class="meta-label">INSTITUTION</span>
+        <span class="meta-value">Shanghai University</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">PROGRAM</span>
+        <span class="meta-value">B.Eng Digital Media Technology</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">GPA</span>
+        <span class="meta-value">3.39 / 4.0 &nbsp;·&nbsp; Avg 86.03 / 100</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">EXCHANGE</span>
+        <span class="meta-value">SKKU, South Korea · 2025–2026</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">SUPERVISOR</span>
+        <span class="meta-value">Prof. Mentian Li</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">SUMMER CAMP</span>
+        <span class="meta-value">CCF Venus CG Camp · Shenzhen U · 2025</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESEARCH -->
+<section id="research">
+  <div class="section-header reveal">
+    <span class="section-num">02</span>
+    <h2 class="section-title">Research</h2>
+  </div>
+  <div class="research-list">
+
+    <div class="research-item reveal">
+      <div>
+        <div class="research-title">Image Inpainting with Diverse Mask Conditions</div>
+        <div class="research-desc">
+          Conducting collaborative research at DX Lab, SKKU, designing and training an inpainting framework built on diffusion-based architectures. Focus on producing coherent, high-fidelity visual synthesis across diverse spatial mask distributions. Contributing to model architecture design, quantitative evaluation, and manuscript writing.
+        </div>
+        <div class="research-tags">
+          <span class="rtag">Diffusion Models</span>
+          <span class="rtag">Image Inpainting</span>
+          <span class="rtag">DX Lab · SKKU</span>
+          <span class="rtag">2025–Present</span>
+        </div>
+      </div>
+      <span class="research-venue venue-purple">BMVC 2026</span>
+    </div>
+
+    <div class="research-item reveal">
+      <div>
+        <div class="research-title">Script-to-Acting: Animating Characters with Context, Traits, and Emotion</div>
+        <div class="research-desc">
+          Constructed a large-scale multimodal dataset of ~30 hours of theatrical footage. Designed a view-invariant 3D motion processing pipeline via GVHMR and HumanML3D protocols. Achieved cross-modal alignment across video, audio, and text for a context-sensitive autoregressive generation pipeline.
+        </div>
+        <div class="research-tags">
+          <span class="rtag">Autoregressive Generation</span>
+          <span class="rtag">Human Motion</span>
+          <span class="rtag">Multimodal</span>
+          <span class="rtag">GVHMR · HumanML3D</span>
+        </div>
+      </div>
+      <span class="research-venue venue-teal">ECCV 2026</span>
+    </div>
+
+    <div class="research-item reveal">
+      <div>
+        <div class="research-title">AvatarBrush: Monocular Reconstruction of Gaussian Avatars</div>
+        <div class="research-desc">
+          Built an interactive editing system (Dear PyGui) around a disentangled Gaussian-Mesh 3D avatar representation with real-time keyframe animation, ROI selection, and texture stamping. Implemented zero-shot garment swapping. Validated on X-Human and ZJU-MoCap benchmarks with strong PSNR/SSIM metrics.
+        </div>
+        <div class="research-tags">
+          <span class="rtag">3D Gaussian Splatting</span>
+          <span class="rtag">Avatar Reconstruction</span>
+          <span class="rtag">Dear PyGui</span>
+          <span class="rtag">X-Human · ZJU-MoCap</span>
+        </div>
+      </div>
+      <a href="https://arxiv.org/abs/2511.19189" target="_blank" class="research-venue venue-gray" style="text-decoration:none">arXiv ↗</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- PROJECTS -->
+<section id="projects">
+  <div class="section-header reveal">
+    <span class="section-num">03</span>
+    <h2 class="section-title">Projects</h2>
+  </div>
+  <div class="projects-grid reveal">
+
+    <a class="project-card" href="https://www.youtube.com/watch?v=CdHcAuQNr1w" target="_blank">
+      <div class="project-num">P.01 · Sep 2025</div>
+      <div class="project-title">Seagull Carrying a Letter</div>
+      <div class="project-desc">
+        Full-stack LLM-driven narrative game with dynamic story and dialogue generation. Integrated Stable Diffusion for procedurally generated personalized postcards. Engineered a structured variable system to control story branching and character state.
+      </div>
+      <div class="research-tags" style="margin-bottom:1rem">
+        <span class="rtag">LLM</span>
+        <span class="rtag">Stable Diffusion</span>
+        <span class="rtag">Full Stack</span>
+        <span class="rtag">Narrative Game</span>
+      </div>
+      <span class="project-link">Watch demo ↗</span>
+    </a>
+
+    <a class="project-card" href="https://www.bilibili.com/video/BV1XWfSY2EJu/" target="_blank">
+      <div class="project-num">P.02 · Jan 2025</div>
+      <div class="project-title">Global Game Jam 2025</div>
+      <div class="project-desc">
+        Delivered a functional game prototype in Unity within a 48-hour cross-disciplinary team sprint, covering physics simulation, UI design, and a dynamic in-game financial system. Shipped a polished product under extreme deadline pressure.
+      </div>
+      <div class="research-tags" style="margin-bottom:1rem">
+        <span class="rtag">Unity</span>
+        <span class="rtag">C#</span>
+        <span class="rtag">Physics</span>
+        <span class="rtag">48h Sprint</span>
+      </div>
+      <span class="project-link">Watch demo ↗</span>
+    </a>
+
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section id="skills">
+  <div class="section-header reveal">
+    <span class="section-num">04</span>
+    <h2 class="section-title">Skills</h2>
+  </div>
+  <div class="skills-grid reveal">
+    <div class="skill-block">
+      <div class="skill-label">LANGUAGES</div>
+      <div class="skill-items">TOEFL 104<br>JLPT N2 (121)<br>Chinese — native</div>
+    </div>
+    <div class="skill-block">
+      <div class="skill-label">PROGRAMMING</div>
+      <div class="skill-items">Python · C++<br>Unity (C#)<br>PyTorch · TensorFlow</div>
+    </div>
+    <div class="skill-block">
+      <div class="skill-label">ML / RESEARCH</div>
+      <div class="skill-items">Transformer Architecture<br>Diffusion Models<br>Autoregressive Generation<br>3D Gaussian Splatting</div>
+    </div>
+    <div class="skill-block">
+      <div class="skill-label">TOOLS</div>
+      <div class="skill-items">Blender · Dear PyGui<br>Git · LaTeX · Overleaf<br>GVHMR · HumanML3D</div>
+    </div>
+  </div>
+
+  <!-- Education here -->
+  <div style="margin-top:2.5rem">
+    <div class="section-header reveal" style="margin-bottom:1.5rem">
+      <span class="section-num">05</span>
+      <h2 class="section-title">Education</h2>
+    </div>
+    <div class="edu-list reveal">
+      <div class="edu-card">
+        <div>
+          <div class="edu-school">Sungkyunkwan University (SKKU)</div>
+          <div class="edu-detail">College of Computing and Informatics · Exchange Student · Seoul, South Korea</div>
+        </div>
+        <div class="edu-year">2025 – 2026</div>
+      </div>
+      <div class="edu-card">
+        <div>
+          <div class="edu-school">Shanghai University</div>
+          <div class="edu-detail">B.Eng Digital Media Technology · GPA 3.39/4.0 · Avg 86.03/100</div>
+        </div>
+        <div class="edu-year">2023 – 2027</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="section-header reveal">
+    <span class="section-num">06</span>
+    <h2 class="section-title">Contact</h2>
+  </div>
+  <div class="contact-grid reveal">
+    <a class="contact-card" href="mailto:pany7066@gmail.com">
+      <span class="contact-icon">✉</span>
+      <span class="contact-label">EMAIL</span>
+      <span class="contact-value">pany7066@gmail.com</span>
+    </a>
+    <a class="contact-card" href="https://github.com/sakanamango" target="_blank">
+      <span class="contact-icon">⌥</span>
+      <span class="contact-label">GITHUB</span>
+      <span class="contact-value">github.com/sakanamango</span>
+    </a>
+    <a class="contact-card" href="https://arxiv.org/abs/2511.19189" target="_blank">
+      <span class="contact-icon">∂</span>
+      <span class="contact-label">ARXIV</span>
+      <span class="contact-value">AvatarBrush preprint</span>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <span class="footer-name">Yichen Pan</span>
+  <span class="footer-note">Digital Media Technology · Shanghai University × SKKU · 2025</span>
+</footer>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 80);
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
